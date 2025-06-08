@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Информация о пользователе</title>
+
+  <!-- Roboto Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- Material Components Web -->
+  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
+
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5; 
+      color: rgba(0, 0, 0, 0.87);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #1a73e8;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 1rem;
+      color: #5f6368;
+      margin-bottom: 30px;
+    }
+
+    .mdc-card {
+      margin-bottom: 30px;
+      overflow: hidden;
+    }
+
+    .user-card-content {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .avatar-container {
+      margin-right: 20px;
+    }
+
+    .avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e0e0e0;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .info-group {
+      margin-bottom: 16px;
+    }
+
+    .label {
+      font-size: 0.85rem;
+      color: #5f6368;
+      margin-bottom: 4px;
+    }
+
+    .user-value {
+      font-size: 1.5rem;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .sub-value {
+      color: #5f6368;
+    }
+
+    .token-section {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .token-title {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 20px;
+      color: #1a73e8;
+    }
+
+    .token-info {
+      background-color: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    .token-label {
+      font-weight: bold;
+      color: #3c4043;
+      margin-bottom: 4px;
+    }
+
+    .token-value {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .error {
+      background-color: #ffebee;
+      border-left: 4px solid #d32f2f;
+      padding: 16px;
+      margin: 20px 0;
+      color: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Информация о пользователе</h1>
+      <p class="subtitle">Эта страница отображает данные пользователя, извлечённые из JWT-токена</p>
+    </header>
+
+    <div id="error-container" class="error" style="display: none;">
+      <p id="error-message"></p>
+    </div>
+
+    <div id="user-card" class="mdc-card" style="display: none;">
+      <div class="user-card-content">
+        <div class="avatar-container">
+            <img id="avatar" class="avatar" src="" alt="Аватар пользователя">
+        </div>
+        <div class="user-details">
+            <div class="info-group">
+                <div id="user-name" class="user-value">Загрузка...</div>
+                <div id="user-email" class="sub-value">Загрузка...</div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="token-section">
+      <h2 class="token-title">Данные из JWT токена</h2>
+      <div id="token-container">
+        <div class="no-token">Данные токена не найдены или загружаются...</div>
+      </div>
+    </div>
+
+    <div class="button-container">
+      <button id="refresh-btn" class="mdc-button mdc-button--unelevated">
+        <span class="mdc-button__ripple"></span>
+        <span class="mdc-button__label">Обновить данные</span>
+      </button>
+      <button id="logout-btn" class="mdc-button mdc-button--unelevated">
+        <span class="mdc-button__ripple"></span>
+        <span class="mdc-button__label">Выйти</span>
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const errorContainer = document.getElementById('error-container');
+      const errorMessage = document.getElementById('error-message');
+      const userCard = document.getElementById('user-card');
+      const userName = document.getElementById('user-name');
+      const userEmail = document.getElementById('user-email');
+      const avatar = document.getElementById('avatar');
+      const tokenContainer = document.getElementById('token-container');
+      const refreshBtn = document.getElementById('refresh-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+
+      // Material Buttons
+      new mdc.ripple.MDCRipple(refreshBtn);
+      new mdc.ripple.MDCRipple(logoutBtn);
+
+      function parseJwt(token) {
+        try {
+          const parts = token.split('.');
+          if (parts.length !== 3) return null;
+          const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          const binaryString = atob(base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          return JSON.parse(new TextDecoder().decode(bytes));
+        } catch (e) {
+          console.error('Ошибка парсинга JWT:', e);
+          return null;
+        }
+      }
+
+      function isTokenValid(tokenData) {
+        if (!tokenData.exp) return true;
+        const currentTime = Math.floor(Date.now() / 1000);
+        return tokenData.exp > currentTime;
+      }
+
+      function displayUserData(tokenData) {
+        if (tokenData) {
+          if (!isTokenValid(tokenData)) {
+            showError('Срок действия токена истек');
+            return;
+          }
+
+          if (tokenData.name) {
+            userCard.style.display = 'block';
+            userName.textContent = tokenData.name;
+            userEmail.textContent = tokenData.email || 'Не указан';
+            avatar.src = tokenData.picture || '/img/person.png';
+          }
+
+          tokenContainer.innerHTML = '';
+          for (const [key, value] of Object.entries(tokenData)) {
+            const tokenInfo = document.createElement('div');
+            tokenInfo.className = 'token-info';
+
+            const label = document.createElement('div');
+            label.className = 'token-label';
+            label.textContent = key;
+
+            const tokenValue = document.createElement('div');
+            tokenValue.className = 'token-value';
+            // Преобразование iat и exp в читаемый формат даты
+            if ((key === 'iat' || key === 'exp') && typeof value === 'number') {
+                tokenValue.textContent = value;
+                const date = new Date(value * 1000); // Unix timestamp in seconds
+                const readableTime = document.createElement('span');
+                readableTime.className = 'sub-value';
+                readableTime.textContent = ` (${date.toLocaleDateString()} ${date.toLocaleTimeString()})`;
+                tokenValue.appendChild(readableTime);
+            } else if (typeof value === 'object') {
+                tokenValue.textContent = JSON.stringify(value, null, 2);
+            } else {
+                tokenValue.textContent = value;
+            }
+
+
+            tokenInfo.appendChild(label);
+            tokenInfo.appendChild(tokenValue);
+            tokenContainer.appendChild(tokenInfo);
+          }
+        } else {
+          showError('Не удалось извлечь данные из токена');
+        }
+      }
+
+      async function loadUserData() {
+        errorContainer.style.display = 'none';
+        try {
+          const response = await fetch(window.location.href, {
+            method: 'GET',
+            cache: 'no-cache'
+          });
+
+          const authHeader = response.headers.get('Authorization');
+          if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            showError('Токен не найден или неверного формата');
+            return;
+          }
+
+          const token = authHeader.substring(7);
+          const tokenData = parseJwt(token);
+          displayUserData(tokenData);
+        } catch (e) {
+          showError(`Ошибка при обработке токена: ${e.message}`);
+        }
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorContainer.style.display = 'block';
+        userCard.style.display = 'none';
+        tokenContainer.innerHTML = `<div class="no-token">${message}</div>`;
+      }
+
+      function logout() {
+        fetch('/logout', {
+          method: 'GET',
+          credentials: 'same-origin'
+        })
+        .then(response => {
+          if (response.redirected) {
+            window.location.href = response.url;
+          } else {
+            window.location.reload();
+          }
+        })
+        .catch(err => {
+          console.error('Logout error:', err);
+          window.location.reload();
+        });
+      }
+
+      refreshBtn.addEventListener('click', loadUserData);
+      logoutBtn.addEventListener('click', logout);
+
+      loadUserData();
+    });
+  </script>
+</body>
+</html>
