@@ -91,8 +91,10 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 	targetPage := welcomePage;
 	if targetPage == "" {
 		targetPage = "/"
+		http.Redirect(w, r, targetPage, http.StatusFound)
+	} else {
+		showWelcomePage(w, r)
 	}
-	http.Redirect(w, r, targetPage, http.StatusFound)
 }
 
 func staticHandler() http.Handler {
