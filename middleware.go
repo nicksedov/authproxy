@@ -9,7 +9,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func authMiddleware(next http.Handler) http.Handler {
+func (s *ProfileServer) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Handling request: %s...", r.RequestURI)
 		// Разрешаем доступ без аутентификации
@@ -19,30 +19,29 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Показываем welcome page если она задана и пользователь не аутентифицирован
-		session, err := getSession(r)
+		session, err := s.getSession(r)
 		if err != nil {
-			if welcomePage != "" {
-				showWelcomePage(w, r)
+			if s.config.WelcomePage != "" {
+				s.showWelcomePage(w, r)
 				return
 			}
-			startOAuthFlow(w, r)
+			s.startOAuthFlow(w, r)
 			return
 		}
 		log.Printf("Setting Authorization header with token: %s...", session.IDToken[:10])
-		//r.Header.Set("Authorization", "Bearer "+session.IDToken)
 		w.Header().Add("Authorization", "Bearer "+session.IDToken)
 		next.ServeHTTP(w, r)
 	})
 }
 
-func startOAuthFlow(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) startOAuthFlow(w http.ResponseWriter, r *http.Request) {
 	targetEndpoint := r.URL.RequestURI()
     log.Printf("Starting OAuth flow for request: %s", targetEndpoint)
 	if strings.ToLower(targetEndpoint) == "/login" {
 		targetEndpoint = "/"
 	}
 	state := base64.URLEncoding.EncodeToString([]byte(targetEndpoint))
-	authURL := oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	authURL := s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
     log.Printf("Generated OAuth URL: %s", authURL)
     http.Redirect(w, r, authURL, http.StatusFound)
 }

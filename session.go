@@ -11,20 +11,20 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-func getSession(r *http.Request) (Session, error) {
-	cookie, err := r.Cookie("session")
+func (s *ProfileServer) getSession(r *http.Request) (Session, error) {
+	cookieName := "session_" + s.config.Name
+	cookie, err := r.Cookie(cookieName)
 	if err != nil {
-        log.Printf("Session not found: %v", err)
-        return Session{}, err
-    }
-    log.Printf("Session found: %s", cookie.Value[:10]+"...") // Логируем часть токена
-    return Session{IDToken: cookie.Value}, nil
+		log.Printf("Session not found: %v", err)
+		return Session{}, err
+	}
+	return Session{IDToken: cookie.Value}, nil
 }
 
-func saveSession(w http.ResponseWriter, session Session) error {
-	log.Printf("Saving session, expires at: %v", session.ExpiresAt)
+func (s *ProfileServer) saveSession(w http.ResponseWriter, session Session) error {
+	cookieName := "session_" + s.config.Name
 	cookie := &http.Cookie{
-		Name:     "session",
+		Name:     cookieName,
 		Value:    session.IDToken,
 		Path:     "/",
 		HttpOnly: true,
@@ -36,9 +36,10 @@ func saveSession(w http.ResponseWriter, session Session) error {
 	return nil
 }
 
-func clearSession(w http.ResponseWriter) {
+func (s *ProfileServer) clearSession(w http.ResponseWriter) {
+	cookieName := "session_" + s.config.Name
 	cookie := &http.Cookie{
-		Name:     "session",
+		Name:     cookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,

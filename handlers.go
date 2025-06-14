@@ -8,24 +8,24 @@ import (
 	"os"
 )
 
-func handleProxyRoot(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) handleProxyRoot(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handling root request: %s %s", r.Method, r.URL.Path)
-	session, err := getSession(r)
+	session, err := s.getSession(r)
 	if err != nil {
-		if welcomePage != "" {
-			showWelcomePage(w, r)
+		if s.config.WelcomePage != "" {
+			s.showWelcomePage(w, r)
 			return
 		}
-		startOAuthFlow(w, r)
+		s.startOAuthFlow(w, r)
 		return
 	}
 
-	log.Printf("Valid session, proxying to %s", destinationURL)
+	log.Printf("Valid session, proxying to %s", s.destination)
 	ctx := context.WithValue(r.Context(), idTokenKey, session.IDToken)
-	proxyRequest(w, r.WithContext(ctx))
+	s.proxyRequest(w, r.WithContext(ctx))
 }
 
-func handleCallback(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) handleCallback(w http.ResponseWriter, r *http.Request) {
 	log.Println("Handling OAuth callback")
 
 	if err := r.URL.Query().Get("error"); err != "" {
@@ -43,7 +43,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("Exchanging authorization code for token")
-	token, err := oauthConfig.Exchange(context.Background(), code)
+	token, err := s.oauthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		log.Printf("Token exchange failed: %v", err)
 		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
@@ -62,7 +62,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: token.Expiry,
 	}
 
-	if err := saveSession(w, session); err != nil {
+	if err := s.saveSession(w, session); err != nil {
 		log.Printf("Failed to save session: %v", err)
 		http.Error(w, "Failed to save session", http.StatusInternalServerError)
 		return
@@ -85,35 +85,35 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
     http.Redirect(w, r, redirectPath, http.StatusFound)
 }
 
-func handleLogout(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) handleLogout(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handling logout request")
-	clearSession(w)
-	targetPage := welcomePage;
+	s.clearSession(w)
+	targetPage := s.config.WelcomePage;
 	if targetPage == "" {
 		targetPage = "/"
 		http.Redirect(w, r, targetPage, http.StatusFound)
 	} else {
-		showWelcomePage(w, r)
+		s.showWelcomePage(w, r)
 	}
 }
 
-func staticHandler() http.Handler {
-	return http.FileServer(http.Dir(staticDir))
+func (s *ProfileServer) staticHandler() http.Handler {
+	return http.FileServer(http.Dir(s.config.StaticDir))
 }
 
-func handleLogin(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Initiating OAuth flow from login page")
-	startOAuthFlow(w, r)
+	s.startOAuthFlow(w, r)
 }
 
-func showWelcomePage(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) showWelcomePage(w http.ResponseWriter, r *http.Request) {
 	// Динамическая загрузка welcome page
-	if welcomePage == "" {
+	if s.config.WelcomePage == "" {
 		http.Error(w, "Welcome page not configured", http.StatusNotFound)
 		return
 	}
 
-	content, err := os.ReadFile(welcomePage)
+	content, err := os.ReadFile(s.config.WelcomePage)
 	if err != nil {
 		log.Printf("Error reading welcome page: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

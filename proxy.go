@@ -7,7 +7,7 @@ import (
 	"net/http/httputil"
 )
 
-func proxyRequest(w http.ResponseWriter, r *http.Request) {
+func (s *ProfileServer) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Proxying to backend: %s %s", r.Method, r.URL.Path)
 
 	// Получаем токен из контекста
@@ -21,10 +21,10 @@ func proxyRequest(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Setting Authorization header with token: %s...", idToken[:10])
 	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			log.Printf("Proxying to: %s%s", destinationURL, req.URL.Path)
-			req.URL.Scheme = destinationURL.Scheme
-			req.URL.Host = destinationURL.Host
-			req.Host = destinationURL.Host
+			log.Printf("Proxying to: %s%s", s.destination, req.URL.Path)
+			req.URL.Scheme = s.destination.Scheme
+			req.URL.Host = s.destination.Host
+			req.Host = s.destination.Host
 			
 			req.Header.Set("Authorization", "Bearer "+idToken)
 

@@ -34,7 +34,8 @@ go.work.sum
 .idea/
 .vscode/
 
-# Secrets
+# Profiles
+profiles.yaml
 config/
 
 # AI
