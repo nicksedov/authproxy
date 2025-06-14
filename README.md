@@ -22,7 +22,7 @@ AuthProxy - это высокоэффективный аутентификаци
 ### Инструкция по сборке
 ```bash
 # Клонирование репозитория (если необходимо)
-git clone https://github.com/your-repo/authproxy.git
+git clone https://github.com/nicksedov/authproxy.git
 cd authproxy
 
 # Установка зависимостей
