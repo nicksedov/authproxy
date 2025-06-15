@@ -97,10 +97,6 @@ func (s *ProfileServer) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *ProfileServer) staticHandler() http.Handler {
-	return http.FileServer(http.Dir(s.config.StaticDir))
-}
-
 func (s *ProfileServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Initiating OAuth flow from login page")
 	s.startOAuthFlow(w, r)
